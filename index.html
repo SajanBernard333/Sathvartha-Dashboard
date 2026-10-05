@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Zion Sathvartha – Outreach Realtime Dashboard</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://unpkg.com/lucide@latest"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<script>
+tailwind.config = { theme: { extend: { fontFamily: { cinzel: ['Cinzel','serif'], sans: ['Plus Jakarta Sans','sans-serif'] } } } };
+</script>
+<style>
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+  .travel-pass-card { background: linear-gradient(135deg, #0b132b 0%, #1c2541 100%); }
+  @media print {
+    body.printing-pass * { visibility: hidden; }
+    body.printing-pass .print-target, body.printing-pass .print-target * { visibility: visible; }
+    body.printing-pass .print-target { position: absolute; left: 0; top: 0; width: 100%; }
+    body.printing-pass { overflow: visible; height: auto; }
+  }
+  @media (max-width: 768px) { #sidebar { position: fixed; transform: translateX(-100%); transition: transform .2s; height: 100%; } #sidebar.open { transform: none; } }
+</style>
+</head>
+<body class="bg-slate-100 font-sans text-slate-800 antialiased flex h-screen overflow-hidden">
+
+<!-- Sidebar -->
+<aside id="sidebar" class="w-64 bg-slate-950 text-white flex flex-col justify-between flex-shrink-0 z-30 border-r border-slate-800">
+  <div>
+    <div class="px-5 py-4 border-b border-slate-800 flex items-center space-x-3">
+      <div class="w-9 h-9 rounded-xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-amber-400 font-bold text-lg">✝</div>
+      <div>
+        <h1 class="font-cinzel text-sm font-bold text-slate-100 tracking-wider">ZION SATHVARTHA</h1>
+        <p class="text-[10px] tracking-widest uppercase text-amber-400 font-semibold">Realtime Dashboard</p>
+      </div>
+    </div>
+    <nav class="p-3 space-y-1" id="nav"></nav>
+  </div>
+  <div class="p-3 border-t border-slate-800 bg-slate-900/60">
+    <button onclick="openContactModal()" class="w-full flex items-center justify-center space-x-2 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-slate-950 font-bold py-2 px-3 rounded-lg text-xs shadow-md">
+      <i data-lucide="user-plus" class="w-3.5 h-3.5"></i><span>Add Fresh Contact</span>
+    </button>
+  </div>
+</aside>
+
+<div class="flex-1 flex flex-col h-screen overflow-hidden min-w-0">
+  <header class="h-14 bg-white border-b border-slate-200 px-4 md:px-6 flex items-center justify-between flex-shrink-0 gap-3">
+    <button class="md:hidden p-1" onclick="document.getElementById('sidebar').classList.toggle('open')"><i data-lucide="menu" class="w-5 h-5"></i></button>
+    <div class="relative flex-1 max-w-lg">
+      <i data-lucide="search" class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
+      <input id="global-search" type="text" placeholder="Search contacts, phone, area, evangelist…" class="w-full pl-9 pr-4 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500/40">
+    </div>
+    <div class="flex items-center space-x-3">
+      <div id="live-pill" class="flex items-center space-x-2 bg-slate-100 text-slate-500 px-2.5 py-1 rounded-full text-[11px] font-bold border border-slate-200">
+        <span id="live-dot" class="w-2 h-2 rounded-full bg-slate-400"></span><span id="live-text">Connecting…</span>
+      </div>
+      <button onclick="openMissionModal()" class="hidden sm:flex bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-3 py-1.5 rounded-lg text-xs items-center space-x-1.5">
+        <i data-lucide="plus-circle" class="w-3.5 h-3.5"></i><span>Log Home Mission</span>
+      </button>
+    </div>
+  </header>
+
+  <main class="flex-1 overflow-y-auto p-4 md:p-6">
+
+    <!-- DASHBOARD -->
+    <section id="view-dashboard" class="space-y-6">
+      <div class="bg-gradient-to-r from-slate-950 via-slate-900 to-indigo-950 text-white rounded-2xl p-5 shadow-lg flex flex-wrap justify-between items-center gap-3">
+        <div>
+          <span class="text-[10px] uppercase font-bold tracking-widest text-amber-400 bg-amber-400/10 px-2.5 py-0.5 rounded-full border border-amber-400/20">Outreach Impact Hub</span>
+          <h2 class="text-xl font-bold font-cinzel mt-1">Zion Sathvartha Outreach Realtime Tracking</h2>
+          <p class="text-slate-300 text-xs mt-1">Fresh encounters, home missions, follow-ups, travel and 3-month fellowship growth — shared live across the team.</p>
+        </div>
+        <div class="flex gap-2 text-xs">
+          <select id="period" class="bg-slate-800 border border-slate-600 rounded-lg px-3 py-1.5">
+            <option value="all">All time</option><option value="today">Today</option><option value="week">This week</option>
+            <option value="month">This month</option><option value="quarter">This quarter</option>
+          </select>
+          <select id="fellowship-filter" class="bg-slate-800 border border-slate-600 rounded-lg px-3 py-1.5"></select>
+        </div>
+      </div>
+
+      <div id="kpis" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4"></div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
+          <h3 class="font-bold text-xs uppercase tracking-wider mb-4">Outreach Funnel</h3>
+          <div class="h-60 relative"><canvas id="chartFunnel"></canvas></div>
+        </div>
+        <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
+          <h3 class="font-bold text-xs uppercase tracking-wider mb-4">Weekly Activity (last 8 weeks)</h3>
+          <div class="h-60 relative"><canvas id="chartActivities"></canvas></div>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
+          <h3 class="font-bold text-sm border-b border-slate-100 pb-3 mb-3">Needs Attention <span class="text-[10px] font-normal text-slate-400">— no contact in 7+ days</span></h3>
+          <div id="reminders" class="space-y-2"></div>
+        </div>
+        <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
+          <h3 class="font-bold text-sm border-b border-slate-100 pb-3 mb-3">Live Activity Stream</h3>
+          <div id="activity-feed" class="space-y-2"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- CONTACTS -->
+    <section id="view-contacts" class="hidden space-y-4">
+      <div class="flex flex-wrap items-center justify-between gap-3 bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+        <div>
+          <h2 class="text-lg font-bold font-cinzel">Outreach Contacts Pipeline</h2>
+          <p class="text-xs text-slate-500">Spiritual progression, follow-ups and Sathvartha status</p>
+        </div>
+        <div class="flex flex-wrap items-center gap-2">
+          <select id="filter-status" class="text-xs bg-slate-50 border border-slate-300 rounded-lg px-3 py-1.5">
+            <option value="ALL">All statuses</option><option value="READY">Ready for Sathvartha</option>
+            <option value="ATTENDED">Attended Sathvartha</option><option value="FELLOWSHIP">In Fellowship</option>
+            <option value="3M">Completed 3 months</option>
+          </select>
+          <button onclick="exportCSV()" class="text-xs bg-slate-100 hover:bg-slate-200 font-semibold px-3 py-1.5 rounded-lg flex items-center gap-1"><i data-lucide="download" class="w-3.5 h-3.5"></i>CSV</button>
+          <button onclick="openContactModal()" class="bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold px-3 py-1.5 rounded-lg text-xs flex items-center gap-1"><i data-lucide="plus" class="w-3.5 h-3.5"></i>Add Contact</button>
+        </div>
+      </div>
+      <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-x-auto">
+        <table class="w-full text-left text-xs">
+          <thead><tr class="bg-slate-900 text-slate-200 uppercase tracking-wider text-[10px] font-bold">
+            <th class="py-3 px-4">Contact</th><th class="py-3 px-4">Phone / Area</th><th class="py-3 px-4">Follow-ups</th>
+            <th class="py-3 px-4">Ready</th><th class="py-3 px-4">Attended</th><th class="py-3 px-4">Fellowship</th><th class="py-3 px-4 text-right">Actions</th>
+          </tr></thead>
+          <tbody id="contacts-body" class="divide-y divide-slate-100"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- TRAVEL -->
+    <section id="view-travel" class="hidden space-y-4">
+      <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h2 class="text-lg font-bold font-cinzel">Sathvartha Travel Passes</h2>
+          <p class="text-xs text-slate-500">Generated automatically for contacts marked Ready for Sathvartha</p>
+        </div>
+        <span class="text-xs bg-amber-100 text-amber-900 font-bold px-3 py-1 rounded-full border border-amber-300">Total: <span id="travel-count">0</span></span>
+      </div>
+      <div id="travel-grid" class="grid grid-cols-1 md:grid-cols-2 gap-6"></div>
+    </section>
+
+    <!-- MISSIONS -->
+    <section id="view-missions" class="hidden space-y-4">
+      <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h2 class="text-lg font-bold font-cinzel">Home Missions Conducted</h2>
+          <p class="text-xs text-slate-500">Small group sessions, hosts, attendance and topics</p>
+        </div>
+        <button onclick="openMissionModal()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-3 py-1.5 rounded-lg text-xs flex items-center gap-1"><i data-lucide="plus" class="w-3.5 h-3.5"></i>Log Home Mission</button>
+      </div>
+      <div id="missions-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
+    </section>
+
+    <!-- TOPICS -->
+    <section id="view-topics" class="hidden space-y-4">
+      <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h2 class="text-lg font-bold font-cinzel">Topics Shared Hub</h2>
+          <p class="text-xs text-slate-500">Combined from follow-ups, home missions and manual entries</p>
+        </div>
+        <button onclick="openTopicModal()" class="bg-purple-600 hover:bg-purple-700 text-white font-bold px-3 py-1.5 rounded-lg text-xs flex items-center gap-1"><i data-lucide="plus" class="w-3.5 h-3.5"></i>Log Topic Shared</button>
+      </div>
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div class="lg:col-span-2 bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
+          <h3 class="font-bold text-xs uppercase tracking-wider mb-4 border-b pb-2">Recent Topics</h3>
+          <div id="topics-log" class="space-y-2"></div>
+        </div>
+        <div class="bg-white rounded-xl border border-slate-200 p-5 shadow-sm h-fit">
+          <h3 class="font-bold text-xs uppercase tracking-wider mb-3 border-b pb-2">Most Shared Themes</h3>
+          <div id="topics-stats" class="space-y-1"></div>
+        </div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<!-- Modals -->
+<div id="modal" class="fixed inset-0 bg-slate-950/70 backdrop-blur-sm hidden items-center justify-center z-50 p-4">
+  <div class="bg-white w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden max-h-[92vh] overflow-y-auto">
+    <div class="px-6 py-4 bg-slate-950 text-white flex justify-between items-center">
+      <h3 id="modal-title" class="font-cinzel font-bold text-sm"></h3>
+      <button onclick="closeModal()" class="text-slate-400 hover:text-white"><i data-lucide="x" class="w-4 h-4"></i></button>
+    </div>
+    <form id="modal-form" class="p-6 space-y-3 text-xs"></form>
+  </div>
+</div>
+<div id="toast" class="fixed bottom-4 right-4 bg-slate-900 text-white text-xs px-4 py-2 rounded-lg shadow-lg hidden z-50"></div>
+
+<script>
+// ---------- Config ----------
+const FELLOWSHIPS = ['Whitefield', 'Marathahalli', 'HAL'];
+const EVANGELISTS = ['Sajan Bernard','John Martis','Veera','Laura','Beula','Ruth','Anitha','Susanna Elisha','Susanna Emmanuel G','Surya Abraham','Elisha','Yesu Maya','Yesu Mevina','David Pradhan','Sara Manjula','Shilpa Emmanuel','Chaitra','Shalini','Sunil Lasrado','Navin Lobo','Tessy David'];
+const SOURCES = ['Tele call','Surveys','D2D','Card Service','Home Mission Invite','Personal Reference','Hospital Service','School Service','Apartment Service','Bible Quiz','Music Ministry','Camps'];
+const NAV = [
+  ['dashboard','layout-dashboard','Realtime Dashboard'], ['contacts','users','Contacts & Pipeline'],
+  ['travel','ticket','Travel Passes'], ['missions','home','Home Missions'], ['topics','book-open','Topics Hub'],
+];
+
+// ---------- State ----------
+let S = { contacts: [], followups: [], missions: [], topics: [] };
+let tab = 'dashboard', chartFunnel, chartAct, passcode = '';
+try { passcode = localStorage.getItem('zs_pass') || ''; } catch {}
+
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const iso = (d) => d.toISOString().slice(0, 10);
+const todayStr = () => iso(new Date());
+const addDays = (s, n) => { const d = new Date(s + 'T00:00:00Z'); d.setUTCDate(d.getUTCDate() + n); return iso(d); };
+const daysBetween = (a, b) => Math.round((new Date(b) - new Date(a)) / 864e5);
+
+// ---------- API ----------
+async function api(method, path, body) {
+  const r = await fetch('/api' + path, { method, headers: { 'content-type': 'application/json', 'x-passcode': passcode }, body: body ? JSON.stringify(body) : undefined });
+  if (r.status === 401) { askPasscode(); throw new Error('Passcode required'); }
+  if (!r.ok) throw new Error((await r.json().catch(() => ({}))).error || r.statusText);
+  return r.json();
+}
+function askPasscode() {
+  const p = prompt('Enter the team passcode:');
+  if (p !== null) { passcode = p; try { localStorage.setItem('zs_pass', p); } catch {} location.reload(); }
+}
+async function load() {
+  try { S = await api('GET', '/state'); render(); } catch (e) { toast(e.message); }
+}
+async function mutate(method, path, body, okMsg) {
+  try { await api(method, path, body); if (okMsg) toast(okMsg); await load(); } catch (e) { toast('Error: ' + e.message); }
+}
+function toast(msg) { const t = $('toast'); t.textContent = msg; t.classList.remove('hidden'); clearTimeout(t._h); t._h = setTimeout(() => t.classList.add('hidden'), 2500); }
+
+// ---------- Realtime (lightweight polling: one tiny request every 3s, full reload only on change) ----------
+let version = null, failing = false;
+function setLive(on) {
+  $('live-dot').className = 'w-2 h-2 rounded-full ' + (on ? 'bg-emerald-500 animate-pulse' : 'bg-red-400');
+  $('live-text').textContent = on ? 'Live' : 'Reconnecting…';
+  $('live-pill').className = 'flex items-center space-x-2 px-2.5 py-1 rounded-full text-[11px] font-bold border ' + (on ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-red-50 text-red-600 border-red-200');
+}
+async function poll() {
+  if (document.hidden) return;
+  try {
+    const { v } = await api('GET', '/version');
+    setLive(true); failing = false;
+    if (v !== version) { version = v; await load(); }
+  } catch (e) { setLive(false); }
+}
+function connect() { poll(); setInterval(poll, 3000); document.addEventListener('visibilitychange', poll); }
+
+// ---------- Derived data ----------
+function periodRange() {
+  const p = $('period').value, t = todayStr(), d = new Date(t + 'T00:00:00Z');
+  if (p === 'today') return [t, t];
+  if (p === 'week') { const dow = (d.getUTCDay() + 6) % 7; return [addDays(t, -dow), t]; }
+  if (p === 'month') return [t.slice(0, 8) + '01', t];
+  if (p === 'quarter') { const m = Math.floor(d.getUTCMonth() / 3) * 3; return [iso(new Date(Date.UTC(d.getUTCFullYear(), m, 1))), t]; }
+  return ['0000-01-01', '9999-12-31'];
+}
+const inRange = (date, [a, b]) => !!date && date >= a && date <= b;
+const threeMonthDone = (c) => c.attended && c.sathvartha_date && daysBetween(c.sathvartha_date, todayStr()) >= 90;
+const threeMonthDate = (c) => c.attended && c.sathvartha_date ? addDays(c.sathvartha_date, 90) : null;
+
+function lastActivity(c) {
+  const dates = S.followups.filter(f => f.contact_id === c.id).map(f => f.date);
+  dates.push(c.date);
+  return dates.sort().pop();
+}
+function fuCount(c) { return S.followups.filter(f => f.contact_id === c.id).length; }
+function scopedContacts() {
+  const f = $('fellowship-filter').value;
+  return f ? S.contacts.filter(c => c.fellowship === f) : S.contacts;
+}
+function allTopics() {
+  const map = new Map();
+  const add = (title, type, date) => { if (!title) return; const k = title.toLowerCase(); const e = map.get(k) || { title, count: 0, types: new Set(), last: '' }; e.count++; e.types.add(type); if (date > e.last) e.last = date; map.set(k, e); };
+  S.followups.forEach(f => add(f.topic, 'Personal One-on-One', f.date));
+  S.missions.forEach(m => add(m.topic, 'Home Mission', m.date));
+  S.topics.forEach(t => add(t.title, t.type, t.date));
+  return [...map.values()].sort((a, b) => b.count - a.count);
+}
+
+// ---------- Rendering ----------
+function render() {
+  renderNav(); renderDashboard(); renderContacts(); renderTravel(); renderMissions(); renderTopics();
+  lucide.createIcons();
+}
+function renderNav() {
+  const badge = { contacts: S.contacts.length, travel: S.contacts.filter(c => c.ready).length, missions: S.missions.length };
+  $('nav').innerHTML = NAV.map(([id, icon, label]) => {
+    const on = id === tab;
+    return `<button onclick="switchTab('${id}')" class="w-full flex items-center space-x-3 px-3.5 py-2.5 rounded-xl text-xs transition-all ${on ? 'font-semibold bg-amber-500/10 text-amber-400 border-l-4 border-amber-400' : 'font-medium text-slate-400 hover:text-slate-100 hover:bg-slate-900'}">
+      <i data-lucide="${icon}" class="w-4 h-4"></i><span class="flex-1 text-left">${label}</span>
+      ${badge[id] !== undefined ? `<span class="text-[10px] bg-slate-800 text-slate-300 px-2 py-0.5 rounded-full font-bold">${badge[id]}</span>` : ''}</button>`;
+  }).join('');
+}
+function switchTab(id) {
+  tab = id;
+  NAV.forEach(([v]) => $('view-' + v).classList.toggle('hidden', v !== id));
+  $('sidebar').classList.remove('open');
+  renderNav(); lucide.createIcons();
+}
+
+function kpi(label, value, color, tabTo, hint) {
+  return `<div onclick="switchTab('${tabTo}')" class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm hover:border-amber-400 transition cursor-pointer">
+    <span class="text-xs text-slate-500 font-semibold">${label}</span>
+    <h3 class="text-2xl font-extrabold ${color} mt-2">${value}</h3>
+    <p class="text-[11px] text-slate-400 mt-1">${hint}</p></div>`;
+}
+function renderDashboard() {
+  const R = periodRange(), cs = scopedContacts(), ids = new Set(cs.map(c => c.id));
+  const fil = $('fellowship-filter').value;
+  const fus = S.followups.filter(f => ids.has(f.contact_id) && inRange(f.date, R));
+  const missions = S.missions.filter(m => (!fil || m.fellowship === fil) && inRange(m.date, R));
+  const topicsN = allTopics().length;
+  const v = {
+    fresh: cs.filter(c => inRange(c.date, R)).length,
+    fu: fus.length,
+    hm: missions.length,
+    ready: cs.filter(c => c.ready && inRange(c.ready_date || c.date, R)).length,
+    att: cs.filter(c => c.attended && inRange(c.sathvartha_date || c.date, R)).length,
+    fel: cs.filter(c => c.in_fellowship && inRange(c.fellowship_date || c.date, R)).length,
+    m3: cs.filter(c => threeMonthDone(c) && inRange(threeMonthDate(c), R)).length,
+  };
+  $('kpis').innerHTML =
+    kpi('Total Fresh Contacts', v.fresh, 'text-slate-900', 'contacts', 'Initial outreach records') +
+    kpi('Follow-ups Met', v.fu, 'text-amber-600', 'contacts', 'Logged interactions') +
+    kpi('Home Missions Conducted', v.hm, 'text-indigo-600', 'missions', 'Small group gatherings') +
+    kpi('Topics Shared (all time)', topicsN, 'text-purple-600', 'topics', 'Distinct themes') +
+    kpi('Ready for Sathvartha', v.ready, 'text-slate-900', 'travel', 'Travel passes generated') +
+    kpi('Attended Sathvartha', v.att, 'text-emerald-600', 'contacts', 'Confirmed attendees') +
+    kpi('In Fellowship', v.fel, 'text-teal-600', 'contacts', 'Active attendees') +
+    kpi('Completed 3 Months', v.m3, 'text-amber-800', 'contacts', '90+ days since Sathvartha');
+
+  // Funnel (all stages in scope, not period-limited, so the shape always reads as a funnel)
+  const funnel = [cs.length, cs.filter(c => c.ready).length, cs.filter(c => c.attended).length, cs.filter(c => c.in_fellowship).length, cs.filter(threeMonthDone).length];
+  const fData = { labels: ['Fresh', 'Ready', 'Attended', 'Fellowship', '3 Months'], datasets: [{ data: funnel, backgroundColor: ['#3b82f6','#f59e0b','#10b981','#14b8a6','#b45309'], borderRadius: 6 }] };
+  if (!chartFunnel) chartFunnel = new Chart($('chartFunnel'), { type: 'bar', data: fData, options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { beginAtZero: true, ticks: { precision: 0 } } } } });
+  else { chartFunnel.data = fData; chartFunnel.update(); }
+
+  // Weekly trend from real dates
+  const t = todayStr(), dow = (new Date(t + 'T00:00:00Z').getUTCDay() + 6) % 7, thisMon = addDays(t, -dow);
+  const weeks = Array.from({ length: 8 }, (_, i) => addDays(thisMon, -7 * (7 - i)));
+  const bucket = (rows, key) => weeks.map(w => rows.filter(r => r[key] >= w && r[key] <= addDays(w, 6)).length);
+  const aData = { labels: weeks.map(w => w.slice(5)), datasets: [
+    { label: 'Fresh contacts', data: bucket(cs, 'date'), borderColor: '#3b82f6', tension: .3 },
+    { label: 'Follow-ups', data: bucket(S.followups.filter(f => ids.has(f.contact_id)), 'date'), borderColor: '#f59e0b', tension: .3 },
+    { label: 'Home missions', data: bucket(S.missions.filter(m => !fil || m.fellowship === fil), 'date'), borderColor: '#6366f1', tension: .3 },
+  ] };
+  if (!chartAct) chartAct = new Chart($('chartActivities'), { type: 'line', data: aData, options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true, ticks: { precision: 0 } } } } });
+  else { chartAct.data = aData; chartAct.update(); }
+
+  // Reminders: Due 7+, Overdue 14+, Pending 30+ (only people not yet attended)
+  const rem = cs.filter(c => !c.attended).map(c => ({ c, days: daysBetween(lastActivity(c), t) })).filter(x => x.days >= 7).sort((a, b) => b.days - a.days).slice(0, 8);
+  const lvl = (d) => d >= 30 ? ['Pending', 'bg-red-100 text-red-700'] : d >= 14 ? ['Overdue', 'bg-orange-100 text-orange-700'] : ['Due', 'bg-amber-100 text-amber-700'];
+  $('reminders').innerHTML = rem.length ? rem.map(({ c, days }) => { const [l, cls] = lvl(days);
+    return `<div class="flex items-center justify-between text-xs bg-slate-50 p-2.5 rounded-lg border border-slate-200">
+      <div><p class="font-bold">${esc(c.name)}</p><p class="text-[11px] text-slate-500">${esc(c.phone)} · ${esc(c.evg || c.fellowship || '—')} · ${days}d ago</p></div>
+      <span class="px-2 py-0.5 rounded-full text-[10px] font-bold ${cls}">${l}</span></div>`; }).join('')
+    : '<p class="text-xs text-slate-400">Everyone has been contacted within the last 7 days.</p>';
+
+  // Activity stream built from real records
+  const ev = [
+    ...S.contacts.map(c => ({ d: c.created_at || c.date, dot: 'bg-blue-500', t: `New contact: ${c.name}`, s: c.fellowship || c.location })),
+    ...S.followups.map(f => ({ d: f.created_at || f.date, dot: 'bg-amber-500', t: `Follow-up: ${(S.contacts.find(c => c.id === f.contact_id) || {}).name || 'contact'}`, s: f.topic })),
+    ...S.missions.map(m => ({ d: m.created_at || m.date, dot: 'bg-indigo-500', t: `Home mission at ${m.host}`, s: `${m.attendees} attendees · ${m.topic}` })),
+  ].sort((a, b) => (b.d > a.d ? 1 : -1)).slice(0, 8);
+  $('activity-feed').innerHTML = ev.length ? ev.map(e => `<div class="flex items-start space-x-3 text-xs bg-slate-50 p-2.5 rounded-lg border border-slate-200">
+    <span class="w-2 h-2 rounded-full ${e.dot} mt-1"></span><div><p class="font-bold">${esc(e.t)}</p><p class="text-slate-500 text-[11px]">${esc(e.s)} · ${esc(String(e.d).slice(0, 10))}</p></div></div>`).join('')
+    : '<p class="text-xs text-slate-400">No activity yet. Add your first contact to get started.</p>';
+}
+
+function filteredContacts() {
+  const q = $('global-search').value.trim().toLowerCase(), f = $('filter-status').value, fel = $('fellowship-filter').value;
+  return S.contacts.filter(c => {
+    if (fel && c.fellowship !== fel) return false;
+    if (f === 'READY' && !c.ready) return false;
+    if (f === 'ATTENDED' && !c.attended) return false;
+    if (f === 'FELLOWSHIP' && !c.in_fellowship) return false;
+    if (f === '3M' && !threeMonthDone(c)) return false;
+    return !q || [c.name, c.phone, c.location, c.fellowship, c.evg, c.source].some(x => (x || '').toLowerCase().includes(q));
+  });
+}
+function renderContacts() {
+  const list = filteredContacts();
+  $('contacts-body').innerHTML = list.length ? list.map(c => `<tr class="hover:bg-slate-50">
+    <td class="py-3 px-4"><div class="font-bold">${esc(c.name)}</div><div class="text-[10px] text-slate-400">${esc(c.id)} · ${esc(c.date)}${c.source ? ' · ' + esc(c.source) : ''}</div></td>
+    <td class="py-3 px-4 text-slate-600"><div class="font-medium">${esc(c.phone)}</div><div class="text-[10px] text-slate-400">${esc([c.location, c.fellowship].filter(Boolean).join(' · ') || '—')}</div></td>
+    <td class="py-3 px-4 font-bold text-amber-600">${fuCount(c)} met</td>
+    <td class="py-3 px-4"><button onclick="toggle('${c.id}','ready')" class="text-[10px] px-2 py-1 rounded font-bold ${c.ready ? 'bg-amber-500 text-slate-950' : 'bg-slate-100 text-slate-500'}">${c.ready ? 'READY' : 'Pending'}</button></td>
+    <td class="py-3 px-4"><button onclick="toggle('${c.id}','attended')" class="text-[10px] px-2 py-1 rounded font-bold ${c.attended ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-500'}">${c.attended ? 'YES' + (c.sathvartha_date ? ' · ' + esc(c.sathvartha_date) : '') : 'NO'}</button>
+      ${threeMonthDone(c) ? '<div class="text-[10px] mt-1 text-amber-800 font-bold">🏆 3 months done</div>' : ''}</td>
+    <td class="py-3 px-4"><button onclick="toggle('${c.id}','in_fellowship')" class="text-[10px] px-2 py-1 rounded font-bold ${c.in_fellowship ? 'bg-teal-100 text-teal-800' : 'bg-slate-100 text-slate-500'}">${c.in_fellowship ? 'Active' : 'No'}</button></td>
+    <td class="py-3 px-4 text-right whitespace-nowrap">
+      <button onclick="openFollowupModal('${c.id}')" class="bg-slate-900 hover:bg-slate-800 text-white font-bold text-[10px] px-2.5 py-1 rounded">Log Follow-up</button>
+      <button onclick="openContactModal('${c.id}')" class="text-slate-500 hover:text-slate-900 px-1.5 text-[10px] font-bold">Edit</button>
+      <button onclick="delContact('${c.id}')" class="text-red-400 hover:text-red-600 px-1 text-[10px] font-bold">Delete</button>
+    </td></tr>`).join('')
+    : '<tr><td colspan="7" class="py-6 text-center text-xs text-slate-400">No contacts match.</td></tr>';
+}
+function renderTravel() {
+  const list = S.contacts.filter(c => c.ready);
+  $('travel-count').textContent = list.length;
+  $('travel-grid').innerHTML = list.length ? list.map(c => `<div class="travel-pass-card rounded-2xl p-5 text-white shadow-xl border border-slate-700 space-y-4" data-pass="${esc(c.id)}">
+    <div class="flex justify-between items-start border-b border-slate-700 pb-3">
+      <div><span class="text-[9px] uppercase font-bold tracking-widest text-amber-400 bg-amber-400/10 px-2 py-0.5 rounded border border-amber-400/20">Sathvartha Travel Voucher</span>
+      <h3 class="text-base font-bold font-cinzel mt-1">${esc(c.name)}</h3></div>
+      <span class="text-[10px] font-extrabold bg-amber-500 text-slate-950 px-2.5 py-1 rounded-full uppercase">${c.attended ? 'Attended' : 'Confirmed'}</span></div>
+    <div class="grid grid-cols-2 gap-3 text-xs">
+      <div><p class="text-[10px] text-slate-400 uppercase font-bold">Pick-up</p><p class="font-semibold mt-0.5">${esc(c.pickup || c.location || '—')}</p></div>
+      <div><p class="text-[10px] text-slate-400 uppercase font-bold">Escort</p><p class="font-semibold text-amber-400 mt-0.5">${esc(c.escort || c.evg || 'Unassigned')}</p></div>
+      <div><p class="text-[10px] text-slate-400 uppercase font-bold">Mobile</p><p class="font-semibold mt-0.5">${esc(c.phone)}</p></div>
+      <div><p class="text-[10px] text-slate-400 uppercase font-bold">Fellowship</p><p class="font-semibold mt-0.5">${esc(c.fellowship || '—')}</p></div>
+    </div>
+    <div class="pt-2 border-t border-slate-800 flex flex-wrap gap-2 justify-between items-center">
+      <span class="text-[10px] text-slate-400">Zion Sathvartha Outreach</span>
+      <div class="flex gap-2">
+        <a target="_blank" rel="noopener" href="https://wa.me/${esc(c.phone.replace(/\D/g, ''))}?text=${encodeURIComponent(`Hi ${c.name}, your Sathvartha travel details — Pick-up: ${c.pickup || c.location || 'TBC'}. Escort: ${c.escort || c.evg || 'TBC'}. God bless!`)}" class="bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold px-3 py-1 rounded text-xs">WhatsApp</a>
+        <button onclick="printPass('${c.id}')" class="bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold px-3 py-1 rounded text-xs">Print</button>
+      </div></div></div>`).join('')
+    : '<div class="md:col-span-2 bg-white p-8 rounded-xl border border-slate-200 text-center text-xs text-slate-400">No contacts are marked Ready for Sathvartha yet.</div>';
+}
+function printPass(id) {
+  const el = document.querySelector(`[data-pass="${CSS.escape(id)}"]`); if (!el) return;
+  el.classList.add('print-target'); document.body.classList.add('printing-pass');
+  window.print();
+  setTimeout(() => { el.classList.remove('print-target'); document.body.classList.remove('printing-pass'); }, 500);
+}
+function renderMissions() {
+  $('missions-grid').innerHTML = S.missions.length ? [...S.missions].sort((a, b) => b.date > a.date ? 1 : -1).map(m => `<div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm space-y-2">
+    <div class="flex justify-between items-start gap-2"><h4 class="font-bold text-xs">${esc(m.host)}</h4><span class="text-[10px] bg-indigo-50 text-indigo-700 font-bold px-2 py-0.5 rounded whitespace-nowrap">${esc(m.date)}</span></div>
+    <p class="text-xs text-amber-700 font-semibold">Topic: ${esc(m.topic)}</p>
+    ${m.highlights ? `<p class="text-xs text-slate-600 italic">"${esc(m.highlights)}"</p>` : ''}
+    <div class="pt-2 border-t border-slate-100 flex justify-between text-[10px] text-slate-400"><span>Attendees: <strong>${m.attendees}</strong>${m.fellowship ? ' · ' + esc(m.fellowship) : ''}</span>
+    <button onclick="delMission('${m.id}')" class="text-red-400 hover:text-red-600 font-bold">Delete</button></div></div>`).join('')
+    : '<p class="text-xs text-slate-400">No home missions logged yet.</p>';
+}
+function renderTopics() {
+  const t = allTopics();
+  $('topics-log').innerHTML = t.length ? t.map(x => `<div class="p-3 bg-slate-50 border border-slate-200 rounded-lg flex justify-between items-center text-xs">
+    <div><h4 class="font-bold">${esc(x.title)}</h4><p class="text-[10px] text-slate-500">${esc([...x.types].join(' · '))} · last ${esc(x.last)}</p></div>
+    <span class="bg-purple-100 text-purple-800 font-bold px-2.5 py-1 rounded-full text-[10px]">Shared ${x.count}×</span></div>`).join('')
+    : '<p class="text-xs text-slate-400">No topics yet.</p>';
+  $('topics-stats').innerHTML = t.slice(0, 8).map(x => `<div class="text-xs flex justify-between py-1 border-b border-slate-100"><span class="text-slate-700">${esc(x.title)}</span><span class="font-bold text-amber-600">${x.count}×</span></div>`).join('');
+}
+
+// ---------- Actions ----------
+function toggle(id, field) {
+  const c = S.contacts.find(x => x.id === id); if (!c) return;
+  const on = c[field] ? 0 : 1, t = todayStr();
+  const body = { [field]: on };
+  if (field === 'ready') body.ready_date = on ? t : null;
+  if (field === 'attended') body.sathvartha_date = on ? (c.sathvartha_date || t) : null;
+  if (field === 'in_fellowship') body.fellowship_date = on ? t : null;
+  mutate('PATCH', '/contacts/' + id, body);
+}
+function delContact(id) { const c = S.contacts.find(x => x.id === id); if (confirm(`Delete ${c.name} and their follow-ups?`)) mutate('DELETE', '/contacts/' + id, null, 'Contact deleted'); }
+function delMission(id) { if (confirm('Delete this home mission?')) mutate('DELETE', '/missions/' + id, null, 'Deleted'); }
+function exportCSV() {
+  const cols = ['id','name','phone','location','fellowship','evg','source','pickup','escort','date','ready','attended','sathvartha_date','in_fellowship'];
+  const q = (v) => `"${String(v ?? '').replace(/"/g, '""')}"`;
+  const csv = [cols.join(','), ...filteredContacts().map(c => cols.map(k => q(c[k])).join(','))].join('\n');
+  const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' })); a.download = `contacts-${todayStr()}.csv`; a.click();
+}
+
+// ---------- Modals ----------
+const inp = 'w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg';
+const field = (label, html) => `<div><label class="block font-bold text-slate-700 mb-1">${label}</label>${html}</div>`;
+const opts = (arr, sel) => arr.map(o => `<option ${o === sel ? 'selected' : ''}>${esc(o)}</option>`).join('');
+const footer = (btn = 'Save') => `<div class="pt-3 flex justify-end space-x-2 border-t border-slate-100"><button type="button" onclick="closeModal()" class="px-4 py-2 rounded-lg text-slate-600 bg-slate-100 font-semibold">Cancel</button><button type="submit" class="px-4 py-2 rounded-lg bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold">${btn}</button></div>`;
+function openModal(title, html, onSubmit) {
+  $('modal-title').textContent = title; $('modal-form').innerHTML = html;
+  $('modal-form').onsubmit = async (e) => { e.preventDefault(); const d = Object.fromEntries(new FormData(e.target)); await onSubmit(d); closeModal(); };
+  $('modal').classList.remove('hidden'); $('modal').classList.add('flex'); lucide.createIcons();
+}
+function closeModal() { $('modal').classList.add('hidden'); $('modal').classList.remove('flex'); }
+
+function openContactModal(id) {
+  const c = S.contacts.find(x => x.id === id) || { date: todayStr() };
+  openModal(id ? 'Edit Contact' : 'Add Fresh Outreach Contact', `
+    ${field('Full name *', `<input name="name" required class="${inp}" value="${esc(c.name)}">`)}
+    <div class="grid grid-cols-2 gap-3">
+      ${field('Phone *', `<input name="phone" type="tel" required class="${inp}" value="${esc(c.phone)}">`)}
+      ${field('Date', `<input name="date" type="date" required class="${inp}" value="${esc(c.date)}">`)}
+    </div>
+    <div class="grid grid-cols-2 gap-3">
+      ${field('Fellowship', `<select name="fellowship" class="${inp}"><option value=""></option>${opts(FELLOWSHIPS, c.fellowship)}</select>`)}
+      ${field('Source', `<select name="source" class="${inp}"><option value=""></option>${opts(SOURCES, c.source)}</select>`)}
+    </div>
+    <div class="grid grid-cols-2 gap-3">
+      ${field('Evangelist', `<input name="evg" list="evg-list" class="${inp}" value="${esc(c.evg)}"><datalist id="evg-list">${EVANGELISTS.map(e => `<option value="${esc(e)}">`).join('')}</datalist>`)}
+      ${field('Area / Location', `<input name="location" class="${inp}" value="${esc(c.location)}">`)}
+    </div>
+    <div class="grid grid-cols-2 gap-3">
+      ${field('Pick-up (travel)', `<input name="pickup" class="${inp}" value="${esc(c.pickup)}">`)}
+      ${field('Travel escort', `<input name="escort" list="evg-list" class="${inp}" value="${esc(c.escort)}">`)}
+    </div>
+    ${field('Notes', `<textarea name="notes" rows="2" class="${inp}">${esc(c.notes)}</textarea>`)}
+    ${footer('Save Contact')}`,
+    (d) => id ? mutate('PATCH', '/contacts/' + id, d, 'Contact updated') : mutate('POST', '/contacts', d, 'Contact added'));
+}
+function openFollowupModal(id) {
+  const c = S.contacts.find(x => x.id === id);
+  openModal('Log Follow-up — ' + c.name, `
+    ${field('Date', `<input name="date" type="date" required class="${inp}" value="${todayStr()}">`)}
+    ${field('Topic shared *', `<input name="topic" required class="${inp}" placeholder="e.g. Psalm 23, Signs of the Times">`)}
+    ${field('Notes', `<textarea name="notes" rows="3" class="${inp}"></textarea>`)}
+    ${footer('Record Follow-up')}`,
+    (d) => mutate('POST', '/followups', { ...d, contact_id: id }, 'Follow-up recorded'));
+}
+function openMissionModal() {
+  openModal('Log Home Mission Conducted', `
+    ${field('Host / Location *', `<input name="host" required class="${inp}">`)}
+    <div class="grid grid-cols-3 gap-3">
+      ${field('Date *', `<input name="date" type="date" required class="${inp}" value="${todayStr()}">`)}
+      ${field('Attendees', `<input name="attendees" type="number" min="0" value="8" class="${inp}">`)}
+      ${field('Fellowship', `<select name="fellowship" class="${inp}"><option value=""></option>${opts(FELLOWSHIPS)}</select>`)}
+    </div>
+    ${field('Topic taught *', `<input name="topic" required class="${inp}">`)}
+    ${field('Highlights', `<textarea name="highlights" rows="2" class="${inp}"></textarea>`)}
+    ${footer('Save Mission')}`,
+    (d) => mutate('POST', '/missions', { ...d, attendees: parseInt(d.attendees) || 0 }, 'Home mission logged'));
+}
+function openTopicModal() {
+  openModal('Log Topic Shared', `
+    ${field('Topic *', `<input name="title" required class="${inp}">`)}
+    ${field('Category', `<select name="type" class="${inp}">${opts(['Personal One-on-One', 'Home Mission', 'Fellowship', 'Sathvartha'])}</select>`)}
+    ${field('Date', `<input name="date" type="date" class="${inp}" value="${todayStr()}">`)}
+    ${footer('Save Topic')}`,
+    (d) => mutate('POST', '/topics', d, 'Topic logged'));
+}
+
+// ---------- Init ----------
+$('fellowship-filter').innerHTML = '<option value="">All fellowships</option>' + FELLOWSHIPS.map(f => `<option>${f}</option>`).join('');
+['period', 'fellowship-filter', 'filter-status'].forEach(id => $(id).addEventListener('change', render));
+$('global-search').addEventListener('input', () => { if (tab !== 'contacts') switchTab('contacts'); renderContacts(); });
+switchTab('dashboard');
+lucide.createIcons();
+connect();
+</script>
+</body>
+</html>
